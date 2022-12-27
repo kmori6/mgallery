@@ -1,1 +1,1 @@
-# mgallery
+# Machine Learning Gallery
