@@ -1,11 +1,9 @@
-import argparse
-
 import numpy as np
 from numpy import linalg
-from sklearn.datasets import fetch_california_housing
 
-from utils import split_dataset, get_logger
+from dataset import CaliforniaDataset
 from metrics import mean_squared_error
+from utils import get_logger, get_parser
 
 logger = get_logger(__name__)
 
@@ -14,23 +12,22 @@ class RidgeModel:
     def __init__(self, fdim: int):
         self.fdim = fdim
 
-    def fit(self, x: np.ndarray, y: np.ndarray, lamb: float):
-        self.w = linalg.inv(lamb * np.identity(self.fdim) + x.T @ x) @ x.T @ y
+    def fit(self, x: np.ndarray, y: np.ndarray, weight_decay: float):
+        self.w = linalg.inv(weight_decay * np.identity(self.fdim) + x.T @ x) @ x.T @ y
 
     def predict(self, x: np.ndarray) -> np.ndarray:
         return np.sum(self.w * x, axis=-1)
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--lamb", default=1e-3, type=float)
+    parser = get_parser()
     args = parser.parse_args()
 
-    x, y = fetch_california_housing(return_X_y=True)
-    (x_train, y_train), _, (x_test, y_test) = split_dataset(x, y)
+    dataset = CaliforniaDataset()
+    (x_train, y_train), _, (x_test, y_test) = dataset.get_dataset()
 
-    ridge = RidgeModel(x.shape[1])
-    ridge.fit(x_train, y_train, lamb=args.lamb)
+    ridge = RidgeModel(x_train.shape[-1])
+    ridge.fit(x_train, y_train, weight_decay=args.weight_decay)
     y_hat = ridge.predict(x_test)
     mse = mean_squared_error(y_hat, y_test)
     logger.info(f"MSE: {mse:.4f}")
